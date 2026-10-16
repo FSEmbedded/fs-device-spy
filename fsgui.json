@@ -1,0 +1,213 @@
+{
+  "type": "tab",
+  "version": 1,
+  "weight": 10,
+  "panelTitle": "FS-Device-Spy",
+  "buttonTitle": "  FS-Device-Spy",
+  "autoExec": [
+    {
+      "type": "runTasks",
+      "tasks": [
+        { 
+          "args": [ {"value": "python3 ./receiver_daemon.py"}],
+          "mode": "silent",
+          "options": {
+            "showErrorMessage": false
+          }
+        }
+      ],
+
+      "concurrency": { "strategy": "command" }
+    }
+  ],
+  "components": [
+    {
+      "type": "h1",
+      "text": "FS-Device-Spy"
+    },
+    {
+      "type": "h2",
+      "text": "Discover & Select Device"
+    },
+    {
+      "type": "grid",
+      "columns": 2,
+      "alignLabels": true,
+      "children": [
+        {
+          "type": "button",
+          "text": "Scan Network",
+          "action": {
+            "type": "runTasks",
+            "tasks": [
+              {
+                "args": "python3 ./ssh_connect.py --boards",
+                "mode": "parsed",
+                "outputs": [
+                  {
+                    "target": "deviceSelect",
+                    "widget": "select-options",
+                    "mode": "set",
+                    "parser": {
+                      "pattern": "\\[(?<value>\\d+)\\]\\s*(?<label>[^|]+?)\\s*\\|"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "selectbox",
+          "id": "deviceSelect",
+          "label": { "text": "Device:", "position": "left" },
+          "options": [],
+          "action": {
+            "type": "runTasks",
+            "concurrency": { "strategy": "command" },
+            "tasks": {
+              "args": [
+                { "value": "python3 ./ssh_connect.py" },
+                { "value": "--boards {{deviceSelect}}", "includeIf": "{{deviceSelect}}" }
+              ],
+              "mode": "parsed",
+              "outputs": [
+                {
+                  "target": "tb_Ident",
+                  "widget": "textbox",
+                  "mode": "set",
+                  "parser": {
+                    "pattern": "\\[\\d+\\]\\s*(?<value>[^|]+?)\\s*\\|"
+                  }
+                },
+                {
+                  "target": "tb_deviceInfo",
+                  "widget": "textbox",
+                  "mode": "set",
+                  "parser": {
+                    "pattern": "\\|\\s*(?<value>[^|]+\\s*\\|\\s*[^|]+)$"
+                  }
+                },
+                {
+                  "target": "tb_mac",
+                  "widget": "textbox",
+                  "mode": "set",
+                  "parser": {
+                    "pattern": "\\|\\s*(?<value>([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})\\s*\\|",
+                    "group": "value"
+                  }
+                },
+                {
+                  "target": "tb_ip",
+                  "widget": "textbox",
+                  "mode": "set",
+                  "parser": {
+                    "pattern": "\\|\\s*(?<value>\\d+\\.\\d+\\.\\d+\\.\\d+)\\s*\\|"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "Device Details"
+    },
+    {
+      "type": "grid",
+      "alignLabels": true,
+      "columns": 2,
+      "children": [
+        {
+          "type": "textbox",
+          "id": "tb_Ident",
+          "label": { "text": "Ident:"},
+          "readOnly": true
+        },
+        {
+          "type": "textbox",
+          "id": "tb_DeviceName",
+          "label": { "text": "Device Name:" },
+          "readOnly": true
+        },
+        {
+          "type": "textbox",
+          "id": "tb_mac",
+          "label": { "text": "MAC Address:" },
+          "readOnly": true
+        },
+        {
+          "type": "textbox",
+          "id": "tb_ip",
+          "label": { "text": "IP Address:" },
+          "readOnly": true
+        },
+        {
+          "type": "textbox",
+          "id": "tb_deviceInfo",
+          "label": { "text": "Device Info:" },
+          "readOnly": true
+        }
+      ]
+    },
+
+    {
+      "type": "h2",
+      "text": "Connect"
+    },
+    {
+      "type": "grid",
+      "columns": 3,
+      "children": [
+        {
+          "type": "button",
+          "text": "SSH",
+          "action": {
+            "type": "runTasks",
+            "tasks":[
+              {
+                "args": [
+                  { "value": "python3 ssh_connect.py" },
+                  { "value": "--board {{deviceSelect}}", "includeIf": "{{deviceSelect}}" },
+                  { "value": "--ssh"  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "button",
+          "text": "RDP",
+          "action": {
+            "type": "runTasks",
+            "tasks": {
+              "args": [
+                { "value": "python3 ssh_connect.py" },
+                { "value": "--board {{deviceSelect}}", "includeIf": "{{deviceSelect}}" },
+                { "value": "--rdp"  }
+              ]
+            }
+          }
+        },
+        {
+          "type": "button",
+          "text": "SFTP",
+          "action": {
+            "type": "runTasks",
+                "concurrency": {
+                    "strategy": "command"
+                },
+            "tasks": {
+              "mode": "silent",
+              "args": [
+                { "value": "python3 ssh_connect.py --board {{deviceSelect}} --sftp" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
